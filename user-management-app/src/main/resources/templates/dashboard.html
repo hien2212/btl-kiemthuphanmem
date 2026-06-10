@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="~{fragments/layout :: head('Dashboard')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/layout :: sidebar('dashboard')}"></div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <span class="page-title">Dashboard</span>
+        </div>
+
+        <div class="content-area">
+            <!-- Welcome banner -->
+            <div class="welcome-banner">
+                <h2>Welcome back, <span sec:authentication="name">User</span>! 👋</h2>
+                <p th:text="${profile.role == 'ROLE_ADMIN'} ? 'You are logged in as Administrator' : 'You are logged in as a regular user'"></p>
+            </div>
+
+            <!-- Stats - Admin only -->
+            <div sec:authorize="hasAuthority('ROLE_ADMIN')">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">👥</div>
+                        <div>
+                            <div class="stat-value" id="totalUsers">–</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">✅</div>
+                        <div>
+                            <div class="stat-value" id="activeUsers">–</div>
+                            <div class="stat-label">Active Users</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon yellow">🛡️</div>
+                        <div>
+                            <div class="stat-value" id="adminCount">–</div>
+                            <div class="stat-label">Administrators</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile summary card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">My Account</span>
+                    <a th:href="@{/profile}" class="btn btn-outline btn-sm">View Profile →</a>
+                </div>
+                <div class="card-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Username</label>
+                            <div class="info-value" th:text="${profile.username}">–</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Email</label>
+                            <div class="info-value" th:text="${profile.email}">–</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Role</label>
+                            <div class="info-value">
+                                <span class="badge"
+                                      th:classappend="${profile.role == 'ROLE_ADMIN'} ? 'badge-admin' : 'badge-user'"
+                                      th:text="${profile.role == 'ROLE_ADMIN'} ? '🛡️ Admin' : '👤 User'">–</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Status</label>
+                            <div class="info-value">
+                                <span class="badge badge-active">✅ Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick links for admin -->
+            <div sec:authorize="hasAuthority('ROLE_ADMIN')" style="margin-top:16px;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Quick Actions</span>
+                    </div>
+                    <div class="card-body">
+                        <a th:href="@{/admin/users}" class="btn btn-primary">👥 Manage Users</a>
+                        <a href="/h2-console" target="_blank" class="btn btn-outline" style="margin-left:8px;">🗄️ H2 Console</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load stats for admin
+fetch('/api/admin/users', { credentials: 'include' })
+    .then(r => r.ok ? r.json() : null)
+    .then(users => {
+        if (!users) return;
+        document.getElementById('totalUsers') && (document.getElementById('totalUsers').textContent = users.length);
+        document.getElementById('activeUsers') && (document.getElementById('activeUsers').textContent = users.filter(u => u.enabled).length);
+        document.getElementById('adminCount') && (document.getElementById('adminCount').textContent = users.filter(u => u.role === 'ROLE_ADMIN').length);
+    }).catch(() => {});
+</script>
+</body>
+</html>

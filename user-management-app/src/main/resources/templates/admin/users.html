@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="~{fragments/layout :: head('Manage Users')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/layout :: sidebar('users')}"></div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <span class="page-title">Manage Users</span>
+        </div>
+
+        <div class="content-area">
+            <!-- Flash messages -->
+            <div th:if="${message}" class="alert alert-success">
+                ✅ <span th:text="${message}"></span>
+            </div>
+            <div th:if="${error}" class="alert alert-danger">
+                ⚠️ <span th:text="${error}"></span>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">All Users (<span th:text="${users.size()}">0</span>)</span>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="user : ${users}">
+                            <td th:text="'#' + ${user.id}" style="color:var(--gray-400); font-size:12px;"></td>
+                            <td>
+                                <strong th:text="${user.username}"></strong>
+                            </td>
+                            <td th:text="${user.email}" style="color:var(--gray-500);"></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${user.role == 'ROLE_ADMIN'} ? 'badge-admin' : 'badge-user'"
+                                      th:text="${user.role == 'ROLE_ADMIN'} ? '🛡️ Admin' : '👤 User'"></span>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${user.enabled} ? 'badge-active' : 'badge-inactive'"
+                                      th:text="${user.enabled} ? '✅ Active' : '❌ Disabled'"></span>
+                            </td>
+                            <td style="color:var(--gray-500); font-size:12px;"
+                                th:text="${user.createdAt != null} ? ${#temporals.format(user.createdAt, 'dd/MM/yyyy')} : '–'"></td>
+                            <td>
+                                <div class="actions">
+                                    <!-- Change role form -->
+                                    <form th:action="@{/admin/users/{id}/role(id=${user.id})}" method="post"
+                                          style="display:flex; gap:4px; align-items:center;">
+                                        <select name="role" class="form-control" style="padding:4px 8px; height:30px; font-size:12px; width:auto;">
+                                            <option value="ROLE_USER" th:selected="${user.role == 'ROLE_USER'}">User</option>
+                                            <option value="ROLE_ADMIN" th:selected="${user.role == 'ROLE_ADMIN'}">Admin</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-primary btn-sm">Set</button>
+                                    </form>
+
+                                    <!-- Toggle status -->
+                                    <form th:action="@{/admin/users/{id}/toggle(id=${user.id})}" method="post">
+                                        <button type="submit" class="btn btn-sm"
+                                                th:classappend="${user.enabled} ? 'btn-warning' : 'btn-success'"
+                                                th:text="${user.enabled} ? '🚫 Disable' : '✅ Enable'"></button>
+                                    </form>
+
+                                    <!-- Delete -->
+                                    <form th:action="@{/admin/users/{id}/delete(id=${user.id})}" method="post"
+                                          onsubmit="return confirm('Delete this user?')">
+                                        <button type="submit" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${users.empty}">
+                            <td colspan="7" style="text-align:center; color:var(--gray-400); padding:32px;">
+                                No users found
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

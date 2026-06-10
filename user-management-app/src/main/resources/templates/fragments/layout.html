@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${title} + ' – User Management'">User Management</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+
+<body>
+<!-- Sidebar fragment -->
+<div th:fragment="sidebar(active)">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-name">👤 UserMgmt</div>
+            <div class="brand-sub">Management System</div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section">Main</div>
+            <a th:href="@{/dashboard}" class="nav-item" th:classappend="${active == 'dashboard'} ? 'active'">
+                <span class="nav-icon">🏠</span> Dashboard
+            </a>
+            <a th:href="@{/profile}" class="nav-item" th:classappend="${active == 'profile'} ? 'active'">
+                <span class="nav-icon">👤</span> My Profile
+            </a>
+
+            <!-- Admin only -->
+            <div sec:authorize="hasAuthority('ROLE_ADMIN')">
+                <div class="nav-section">Administration</div>
+                <a th:href="@{/admin/users}" class="nav-item" th:classappend="${active == 'users'} ? 'active'">
+                    <span class="nav-icon">👥</span> Manage Users
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="avatar" sec:authentication="name"
+                     th:text="${#strings.toUpperCase(#strings.substring(#authentication.name, 0, 1))}">U</div>
+                <div class="user-info-text">
+                    <div class="user-name" sec:authentication="name">Username</div>
+                    <div class="user-role"
+                         th:text="${#authentication.authorities[0].authority == 'ROLE_ADMIN' ? 'Administrator' : 'User'}">Role</div>
+                </div>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="btn btn-outline" style="width:100%; justify-content:center;">
+                    🚪 Logout
+                </button>
+            </form>
+        </div>
+    </aside>
+</div>
+
+</body>
+</html>

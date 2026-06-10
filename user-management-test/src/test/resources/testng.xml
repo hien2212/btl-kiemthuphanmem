@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<suite name="User Management Test Suite" verbose="1" parallel="false">
+
+    <!-- ===== ExtentReport Listener ===== -->
+    <listeners>
+        <listener class-name="com.usermgmt.test.listener.ExtentReportListener"/>
+    </listeners>
+
+    <parameter name="baseUrl" value="http://localhost:8080"/>
+
+    <!-- ===== API Tests ===== -->
+    <test name="API Tests - Authentication">
+        <classes>
+            <class name="com.usermgmt.test.api.AuthApiTest"/>
+        </classes>
+    </test>
+
+    <test name="API Tests - User Management">
+        <classes>
+            <class name="com.usermgmt.test.api.UserApiTest"/>
+        </classes>
+    </test>
+
+    <!-- ===== UI Tests ===== -->
+    <test name="UI Tests - Login">
+        <classes>
+            <class name="com.usermgmt.test.ui.LoginUITest"/>
+        </classes>
+    </test>
+
+    <test name="UI Tests - Register">
+        <classes>
+            <class name="com.usermgmt.test.ui.RegisterUITest"/>
+        </classes>
+    </test>
+
+    <test name="UI Tests - Admin Panel">
+        <classes>
+            <class name="com.usermgmt.test.ui.AdminUITest"/>
+        </classes>
+    </test>
+
+</suite>

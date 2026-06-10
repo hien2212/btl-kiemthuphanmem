@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="~{fragments/layout :: head('My Profile')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/layout :: sidebar('profile')}"></div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <span class="page-title">My Profile</span>
+        </div>
+
+        <div class="content-area">
+            <div class="profile-header">
+                <div class="profile-avatar"
+                     th:text="${#strings.toUpperCase(#strings.substring(profile.username, 0, 1))}">U</div>
+                <div>
+                    <div class="profile-name" th:text="${profile.username}">Username</div>
+                    <div class="profile-email" th:text="${profile.email}">email@example.com</div>
+                    <div style="margin-top:8px;">
+                        <span class="badge"
+                              th:classappend="${profile.role == 'ROLE_ADMIN'} ? 'badge-admin' : 'badge-user'"
+                              th:text="${profile.role == 'ROLE_ADMIN'} ? '🛡️ Administrator' : '👤 Regular User'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Account Details</span>
+                </div>
+                <div class="card-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>User ID</label>
+                            <div class="info-value" th:text="'#' + ${profile.id}">–</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Username</label>
+                            <div class="info-value" th:text="${profile.username}">–</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Email</label>
+                            <div class="info-value" th:text="${profile.email}">–</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Role</label>
+                            <div class="info-value" th:text="${profile.role}">–</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Status</label>
+                            <div class="info-value">
+                                <span class="badge" th:classappend="${profile.enabled} ? 'badge-active' : 'badge-inactive'"
+                                      th:text="${profile.enabled} ? '✅ Active' : '❌ Disabled'">–</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Joined</label>
+                            <div class="info-value"
+                                 th:text="${#temporals.format(profile.createdAt, 'dd MMM yyyy, HH:mm')}">–</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

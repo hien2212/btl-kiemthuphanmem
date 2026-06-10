@@ -1,0 +1,11 @@
+.idea/
+**/target/
+
+*.class
+*.jar
+*.war
+
+test-output/
+surefire-reports/
+
+*.log
