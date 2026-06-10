@@ -85,7 +85,7 @@ public class SecurityConfig {
     public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**")
+                        .ignoringRequestMatchers("/h2-console/**", "/logout")
                 )
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin())
