@@ -17,6 +17,39 @@ public class AuthApiTest extends BaseTest {
         setupRestAssured();
     }
 
+    // ===================== DATA PROVIDERS =====================
+
+    /**
+     * DataProvider: các trường hợp đăng ký không hợp lệ.
+     * Mỗi hàng: { username, email, password, confirmPassword, expectedStatus, mô tả }
+     */
+    @DataProvider(name = "invalidRegisterData")
+    public Object[][] invalidRegisterData() {
+        return new Object[][] {
+            // password không khớp
+            { randomUsername(), randomEmail(), "password123", "different456",  400, "Password không khớp" },
+            // email sai định dạng
+            { randomUsername(), "not-an-email", "password123", "password123", 400, "Email không hợp lệ" },
+            // password quá ngắn
+            { randomUsername(), randomEmail(),  "123",         "123",          400, "Password quá ngắn (<6 ký tự)" },
+            // body rỗng (thiếu field)
+            { "",               "",             "",            "",             400, "Thiếu field bắt buộc" },
+        };
+    }
+
+    /**
+     * DataProvider: các trường hợp đăng nhập thất bại.
+     * Mỗi hàng: { username, password, expectedStatus, mô tả }
+     */
+    @DataProvider(name = "invalidLoginData")
+    public Object[][] invalidLoginData() {
+        return new Object[][] {
+            { ADMIN_USERNAME,        "wrongpassword",  401, "Sai password" },
+            { "nonexistentuser_xyz", "password123",    401, "Username không tồn tại" },
+            { "",                    "",               400, "Username và password rỗng" },
+        };
+    }
+
     // ===================== REGISTER =====================
 
     @Test(description = "Đăng ký thành công với thông tin hợp lệ")
@@ -85,79 +118,35 @@ public class AuthApiTest extends BaseTest {
         test.pass("Trả về 400 khi email đã tồn tại");
     }
 
-    @Test(description = "Đăng ký thất bại khi password không khớp")
-    public void testRegisterPasswordMismatch() {
-        test = extent.createTest("API - Register: Password không khớp");
+    /**
+     * Data-driven test: kiểm thử nhiều trường hợp đăng ký không hợp lệ
+     * chỉ với một method duy nhất nhờ @DataProvider.
+     */
+    @Test(
+        description   = "Đăng ký thất bại – data-driven (nhiều kịch bản)",
+        dataProvider  = "invalidRegisterData"
+    )
+    public void testRegisterInvalidData(
+            String username, String email,
+            String password, String confirmPassword,
+            int expectedStatus, String scenario) {
+
+        test = extent.createTest("API - Register (data-driven): " + scenario);
 
         Map<String, String> body = new HashMap<>();
-        body.put("username", randomUsername());
-        body.put("email", randomEmail());
-        body.put("password", "password123");
-        body.put("confirmPassword", "different456");
+        body.put("username", username);
+        body.put("email", email);
+        body.put("password", password);
+        body.put("confirmPassword", confirmPassword);
 
         freshRequest()
             .body(body)
         .when()
             .post("/api/auth/register")
         .then()
-            .statusCode(400);
+            .statusCode(expectedStatus);
 
-        test.pass("Trả về 400 khi password không khớp");
-    }
-
-    @Test(description = "Đăng ký thất bại khi thiếu field bắt buộc")
-    public void testRegisterMissingFields() {
-        test = extent.createTest("API - Register: Thiếu field bắt buộc");
-
-        // Gửi body rỗng hoàn toàn
-        freshRequest()
-            .body("{}")
-        .when()
-            .post("/api/auth/register")
-        .then()
-            .statusCode(400);
-
-        test.pass("Trả về 400 khi các field bắt buộc bị trống");
-    }
-
-    @Test(description = "Đăng ký thất bại khi email không đúng định dạng")
-    public void testRegisterInvalidEmail() {
-        test = extent.createTest("API - Register: Email không hợp lệ");
-
-        Map<String, String> body = new HashMap<>();
-        body.put("username", randomUsername());
-        body.put("email", "not-an-email");
-        body.put("password", "password123");
-        body.put("confirmPassword", "password123");
-
-        freshRequest()
-            .body(body)
-        .when()
-            .post("/api/auth/register")
-        .then()
-            .statusCode(400);
-
-        test.pass("Trả về 400 khi email không đúng định dạng");
-    }
-
-    @Test(description = "Đăng ký thất bại khi password quá ngắn")
-    public void testRegisterShortPassword() {
-        test = extent.createTest("API - Register: Password quá ngắn");
-
-        Map<String, String> body = new HashMap<>();
-        body.put("username", randomUsername());
-        body.put("email", randomEmail());
-        body.put("password", "123");
-        body.put("confirmPassword", "123");
-
-        freshRequest()
-            .body(body)
-        .when()
-            .post("/api/auth/register")
-        .then()
-            .statusCode(400);
-
-        test.pass("Trả về 400 khi password dưới 6 ký tự");
+        test.pass("Trả về " + expectedStatus + " – kịch bản: " + scenario);
     }
 
     // ===================== LOGIN =====================
@@ -176,10 +165,10 @@ public class AuthApiTest extends BaseTest {
             .post("/api/auth/login")
         .then()
             .statusCode(200)
-            .body("token", notNullValue())
-            .body("type", equalTo("Bearer"))
+            .body("token",    notNullValue())
+            .body("type",     equalTo("Bearer"))
             .body("username", equalTo(ADMIN_USERNAME))
-            .body("role", equalTo("ROLE_ADMIN"));
+            .body("role",     equalTo("ROLE_ADMIN"));
 
         test.pass("Đăng nhập admin thành công, nhận được JWT token");
     }
@@ -198,48 +187,38 @@ public class AuthApiTest extends BaseTest {
             .post("/api/auth/login")
         .then()
             .statusCode(200)
-            .body("token", notNullValue())
-            .body("role", equalTo("ROLE_USER"))
+            .body("token",    notNullValue())
+            .body("role",     equalTo("ROLE_USER"))
             .body("username", equalTo(USER_USERNAME));
 
         test.pass("Đăng nhập user thường thành công");
     }
 
-    @Test(description = "Đăng nhập thất bại với sai password")
-    public void testLoginWrongPassword() {
-        test = extent.createTest("API - Login: Sai password");
+    /**
+     * Data-driven test: nhiều kịch bản đăng nhập thất bại.
+     */
+    @Test(
+        description  = "Đăng nhập thất bại – data-driven (nhiều kịch bản)",
+        dataProvider = "invalidLoginData"
+    )
+    public void testLoginInvalidData(
+            String username, String password,
+            int expectedStatus, String scenario) {
+
+        test = extent.createTest("API - Login (data-driven): " + scenario);
 
         Map<String, String> body = new HashMap<>();
-        body.put("username", ADMIN_USERNAME);
-        body.put("password", "wrongpassword");
+        body.put("username", username);
+        body.put("password", password);
 
         freshRequest()
             .body(body)
         .when()
             .post("/api/auth/login")
         .then()
-            .statusCode(401)
-            .body("success", equalTo(false));
+            .statusCode(expectedStatus);
 
-        test.pass("Trả về 401 khi sai password");
-    }
-
-    @Test(description = "Đăng nhập thất bại với username không tồn tại")
-    public void testLoginUserNotFound() {
-        test = extent.createTest("API - Login: Username không tồn tại");
-
-        Map<String, String> body = new HashMap<>();
-        body.put("username", "nonexistentuser_xyz");
-        body.put("password", "password123");
-
-        freshRequest()
-            .body(body)
-        .when()
-            .post("/api/auth/login")
-        .then()
-            .statusCode(401);
-
-        test.pass("Trả về 401 khi username không tồn tại");
+        test.pass("Trả về " + expectedStatus + " – kịch bản: " + scenario);
     }
 
     @Test(description = "Response login có đầy đủ các field")

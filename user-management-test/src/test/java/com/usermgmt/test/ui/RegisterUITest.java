@@ -1,17 +1,22 @@
 package com.usermgmt.test.ui;
 
 import com.usermgmt.test.base.BaseTest;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
+import com.usermgmt.test.ui.pages.LoginPage;
+import com.usermgmt.test.ui.pages.RegisterPage;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
 public class RegisterUITest extends BaseTest {
 
+    private RegisterPage registerPage;
+    private LoginPage    loginPage;
+
     @BeforeClass
     public void setup() {
         setupDriver();
+        registerPage = new RegisterPage(driver, wait);
+        loginPage    = new LoginPage(driver, wait);
     }
 
     @AfterClass
@@ -19,30 +24,23 @@ public class RegisterUITest extends BaseTest {
         tearDownDriver();
     }
 
-    private void goToRegister() {
-        driver.get(BASE_URL + "/register");
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("username")));
-    }
-
-    private void doLogout() {
+    private void logout() {
         try {
             driver.get(BASE_URL + "/logout");
             wait.until(ExpectedConditions.urlContains("/login"));
-        } catch (Exception e) {
-            // Session có thể đã bị reset, bỏ qua
-        }
+        } catch (Exception ignored) {}
     }
 
     @Test(description = "Trang register hiển thị đúng các thành phần")
     public void testRegisterPageElements() {
         test = extent.createTest("UI - Register: Kiểm tra thành phần trang");
-        goToRegister();
+        registerPage.open(BASE_URL);
 
-        Assert.assertTrue(driver.findElement(By.id("username")).isDisplayed(),        "Ô username");
-        Assert.assertTrue(driver.findElement(By.id("email")).isDisplayed(),           "Ô email");
-        Assert.assertTrue(driver.findElement(By.id("password")).isDisplayed(),        "Ô password");
-        Assert.assertTrue(driver.findElement(By.id("confirmPassword")).isDisplayed(), "Ô confirmPassword");
-        Assert.assertTrue(driver.findElement(By.cssSelector("button[type='submit']")).isDisplayed(), "Nút submit");
+        Assert.assertTrue(registerPage.isUsernameDisplayed(),        "Ô username");
+        Assert.assertTrue(registerPage.isEmailDisplayed(),           "Ô email");
+        Assert.assertTrue(registerPage.isPasswordDisplayed(),        "Ô password");
+        Assert.assertTrue(registerPage.isConfirmPasswordDisplayed(), "Ô confirmPassword");
+        Assert.assertTrue(registerPage.isSubmitDisplayed(),          "Nút submit");
 
         test.pass("Trang register có đủ 4 field + nút submit");
     }
@@ -50,24 +48,14 @@ public class RegisterUITest extends BaseTest {
     @Test(description = "Đăng ký thành công redirect về login")
     public void testRegisterSuccess() {
         test = extent.createTest("UI - Register: Đăng ký thành công");
-        goToRegister();
-
-        driver.findElement(By.id("username")).sendKeys(randomUsername());
-        driver.findElement(By.id("email")).sendKeys(randomEmail());
-        driver.findElement(By.id("password")).sendKeys("password123");
-        driver.findElement(By.id("confirmPassword")).sendKeys("password123");
-        driver.findElement(By.cssSelector("button[type='submit']")).click();
+        registerPage.open(BASE_URL);
+        registerPage.register(randomUsername(), randomEmail(), "password123");
 
         try {
             wait.until(ExpectedConditions.urlContains("/login"));
-            Assert.assertTrue(driver.getCurrentUrl().contains("/login"), "Phải redirect về /login");
-
-            // Kiểm tra thông báo thành công
-            wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//*[contains(text(),'successful') or contains(text(),'success') or contains(text(),'Registration')]")
-            ));
+            Assert.assertTrue(registerPage.isOnLoginPage(), "Phải redirect về /login");
+            Assert.assertTrue(registerPage.isSuccessDisplayed(), "Phải hiển thị thông báo thành công");
         } catch (org.openqa.selenium.NoSuchSessionException e) {
-            // Chrome đóng session sau redirect - coi như thành công
             Assert.assertTrue(true, "Redirect thành công");
         }
 
@@ -77,18 +65,13 @@ public class RegisterUITest extends BaseTest {
     @Test(description = "Username đã tồn tại hiển thị lỗi")
     public void testRegisterDuplicateUsername() {
         test = extent.createTest("UI - Register: Username đã tồn tại");
-        goToRegister();
+        registerPage.open(BASE_URL);
+        registerPage.register(ADMIN_USERNAME, randomEmail(), "password123");
 
-        driver.findElement(By.id("username")).sendKeys(ADMIN_USERNAME);
-        driver.findElement(By.id("email")).sendKeys(randomEmail());
-        driver.findElement(By.id("password")).sendKeys("password123");
-        driver.findElement(By.id("confirmPassword")).sendKeys("password123");
-        driver.findElement(By.cssSelector("button[type='submit']")).click();
-
-        wait.until(ExpectedConditions.urlContains("/register"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("/register"), "Phải ở lại trang register");
+        Assert.assertTrue(registerPage.isOnRegisterPage(), "Phải ở lại trang register");
         Assert.assertTrue(
-            driver.getPageSource().contains("already exists") || driver.getPageSource().contains("Username"),
+            registerPage.getPageSource().contains("already exists") ||
+            registerPage.getPageSource().contains("Username"),
             "Phải hiển thị lỗi"
         );
 
@@ -98,16 +81,14 @@ public class RegisterUITest extends BaseTest {
     @Test(description = "Email đã tồn tại hiển thị lỗi")
     public void testRegisterDuplicateEmail() {
         test = extent.createTest("UI - Register: Email đã tồn tại");
-        goToRegister();
+        registerPage.open(BASE_URL);
+        registerPage.enterUsername(randomUsername())
+                    .enterEmail("admin@example.com")
+                    .enterPassword("password123")
+                    .enterConfirmPassword("password123")
+                    .clickSubmit();
 
-        driver.findElement(By.id("username")).sendKeys(randomUsername());
-        driver.findElement(By.id("email")).sendKeys("admin@example.com");
-        driver.findElement(By.id("password")).sendKeys("password123");
-        driver.findElement(By.id("confirmPassword")).sendKeys("password123");
-        driver.findElement(By.cssSelector("button[type='submit']")).click();
-
-        wait.until(ExpectedConditions.urlContains("/register"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("/register"), "Phải ở lại trang register");
+        Assert.assertTrue(registerPage.isOnRegisterPage(), "Phải ở lại trang register");
 
         test.pass("Hiển thị lỗi email đã tồn tại");
     }
@@ -115,16 +96,14 @@ public class RegisterUITest extends BaseTest {
     @Test(description = "Password không khớp ở lại trang register")
     public void testRegisterPasswordMismatch() {
         test = extent.createTest("UI - Register: Password không khớp");
-        goToRegister();
+        registerPage.open(BASE_URL);
+        registerPage.enterUsername(randomUsername())
+                    .enterEmail(randomEmail())
+                    .enterPassword("password123")
+                    .enterConfirmPassword("different456")
+                    .clickSubmit();
 
-        driver.findElement(By.id("username")).sendKeys(randomUsername());
-        driver.findElement(By.id("email")).sendKeys(randomEmail());
-        driver.findElement(By.id("password")).sendKeys("password123");
-        driver.findElement(By.id("confirmPassword")).sendKeys("different456");
-        driver.findElement(By.cssSelector("button[type='submit']")).click();
-
-        wait.until(ExpectedConditions.urlContains("/register"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("/register"), "Phải ở lại trang register");
+        Assert.assertTrue(registerPage.isOnRegisterPage(), "Phải ở lại trang register");
 
         test.pass("Ở lại trang register khi password không khớp");
     }
@@ -132,14 +111,12 @@ public class RegisterUITest extends BaseTest {
     @Test(description = "Có link quay về trang Login")
     public void testRegisterHasLoginLink() {
         test = extent.createTest("UI - Register: Có link về Login");
-        goToRegister();
+        registerPage.open(BASE_URL);
 
-        WebElement link = driver.findElement(By.linkText("Sign in"));
-        Assert.assertTrue(link.isDisplayed(), "Link Sign in phải hiển thị");
-        link.click();
+        Assert.assertTrue(registerPage.isSignInLinkDisplayed(), "Link Sign in phải hiển thị");
+        registerPage.clickSignInLink();
 
-        wait.until(ExpectedConditions.urlContains("/login"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("/login"), "Click link mở /login");
+        Assert.assertTrue(registerPage.isOnLoginPage(), "Click link mở /login");
 
         test.pass("Link về trang login hoạt động đúng");
     }
@@ -147,31 +124,22 @@ public class RegisterUITest extends BaseTest {
     @Test(description = "Đăng ký xong đăng nhập được ngay")
     public void testRegisterThenLogin() {
         test = extent.createTest("UI - Register: Đăng ký xong đăng nhập được");
-        goToRegister();
 
         String username = randomUsername();
         String password = "password123";
 
         // Đăng ký
-        driver.findElement(By.id("username")).sendKeys(username);
-        driver.findElement(By.id("email")).sendKeys(randomEmail());
-        driver.findElement(By.id("password")).sendKeys(password);
-        driver.findElement(By.id("confirmPassword")).sendKeys(password);
-        driver.findElement(By.cssSelector("button[type='submit']")).click();
-
-        // Chờ về trang login
+        registerPage.open(BASE_URL);
+        registerPage.register(username, randomEmail(), password);
         wait.until(ExpectedConditions.urlContains("/login"));
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("username")));
 
-        // Đăng nhập
-        driver.findElement(By.id("username")).sendKeys(username);
-        driver.findElement(By.id("password")).sendKeys(password);
-        driver.findElement(By.cssSelector("button[type='submit']")).click();
+        // Đăng nhập bằng LoginPage
+        loginPage.open(BASE_URL);
+        loginPage.loginAs(username, password);
 
-        wait.until(ExpectedConditions.urlContains("/dashboard"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("/dashboard"), "Phải vào được dashboard");
+        Assert.assertTrue(loginPage.isOnDashboard(), "Phải vào được dashboard");
 
         test.pass("Đăng ký xong đăng nhập thành công");
-        doLogout();
+        logout();
     }
 }
